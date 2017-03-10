@@ -31,10 +31,6 @@ class Dict(dict):
     Traceback (most recent call last):
         ...
     KeyError: 'empty'
-    >>> d2.empty
-    Traceback (most recent call last):
-        ...
-    AttributeError: 'Dict' object has no attribute 'empty'
     >>> d3 = Dict(('a','b','c'),(1,2,3))
     >>> d3.a
     1
@@ -95,14 +91,14 @@ class MultiColumnError(DBError):
     pass
 
 
-class _LasyConnection(object):
+class _LazyConnection(object):
 
     def __init__(self):
         self.connection = None
 
     def cursor(self):
         if self.connection is None:
-            connection = engine.connnect()
+            connection = engine.connect()
             logging.info('open connection <%s>...' % hex(id(connection)))
             self.connection = connection
         return self.connection.cursor()
@@ -136,7 +132,7 @@ class _DbCtx(threading.local):
 
     def init(self):
         logging.info('open lazy connection...')
-        self.connection = _LasyConnection()
+        self.connection = _LazyConnection()
         self.transactions = 0
 
     def cleanup(self):
@@ -145,6 +141,8 @@ class _DbCtx(threading.local):
 
     def cursor(self):
         return self.connection.cursor()
+
+_db_ctx = _DbCtx()
 
 
 # 实现数据库上下文对象，目的是自动获取和释放连接
@@ -183,7 +181,7 @@ def connection():
 
 
 def with_connection(func):
-    '''
+    """
     Decorator for reuse connection.
     :param func:
     :return:
@@ -193,7 +191,7 @@ def with_connection(func):
         f1()
         f2()
         f3()
-    '''
+    """
     @functools.wraps(func)
     def _wrapper(*args, **kw):
         with _ConnectionCtx():
@@ -271,10 +269,11 @@ def with_transaction(func):
     def _wrapper(*args, **kw):
         with _TransactionCtx():
             return func(*args, **kw)
-        _profiling(_start)
+        # _profiling(_start)
     return _wrapper
 
 
+@with_connection
 def _select(sql, fist, *args):
     """ execute select SQL and return unique result or list results.
     """
@@ -297,7 +296,6 @@ def _select(sql, fist, *args):
             cursor.close()
 
 
-@with_connection
 def select_one(sql, *args):
     """
     Execute select SQL and expected one result.
@@ -307,7 +305,6 @@ def select_one(sql, *args):
     return _select(sql, True, *args)
 
 
-@with_connection
 def select_int(sql, *args):
     """
     Execute select SQL and expected one int and only one int result.
@@ -318,7 +315,6 @@ def select_int(sql, *args):
     return d.values()[0]
 
 
-@with_connection
 def select(sql, *args):
     """
     Execute select SQL and return list or empty list if no result.
@@ -350,7 +346,7 @@ def insert(table, **kw):
     Execute insert SQL.
     """
     cols, args = zip(**kw.iteritems())
-    sql = 'insert into `%s` (%s) values (%s)' % (table, ','.join(['`%s' % col for col in cols]),
+    sql = 'insert into `%s` (%s) values (%s)' % (table, ','.join(['%s' % col for col in cols]),
                                                  ','.join(['?' for i in range(len(cols))]))
     return _update(sql, *args)
 
@@ -380,11 +376,11 @@ def create_engine(user, passwd, database, host='127.0.0.1', port=3306, **kwargs)
 
 if __name__ == '__main__':
     logging.basicConfig(level=logging.DEBUG)
-    create_engine('www-data', 'www-data', 'test')
+    create_engine('root', 'password', 'blogdb')
     update('drop table if exists user')
     update('create table user (id int primary key, name text, email text, passwd text, last_modified real)')
-    import doctest
-    doctest.testmod()
+    # import doctest
+    # doctest.testmod()
 
 
 
