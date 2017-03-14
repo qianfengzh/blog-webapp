@@ -148,6 +148,11 @@ def select_one(sql, *args):
     return _select(sql, True, *args)
 
 
+def select_int(sql, *args):
+    d = _select(sql, False, *args)
+    return d.values()[0]
+
+
 def select(sql, *args):
     return _select(sql, False, *args)
 
