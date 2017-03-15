@@ -132,10 +132,9 @@ class ModelMetaClass(type):
     """
     def __new__(mcs, name, bases, attrs):
         # skip base Model class:
-        print attrs
         if name == 'Model':
             return type.__new__(mcs, name, bases, attrs)
-
+        # print attrs
         # store all subclasses info:
         if not hasattr(mcs, 'subclasses'):
             mcs.subclasses = {}
@@ -176,6 +175,8 @@ class ModelMetaClass(type):
         for trigger in _triggers:
             if trigger not in attrs:
                 attrs[trigger] = None
+        print name, bases
+        print attrs
         return type.__new__(mcs, name, bases, attrs)
 
 
@@ -257,13 +258,11 @@ class Model(dict):
     def insert(self):
         # self.pre_insert and self.pre_isnert()
         params = {}
-        print self.__mappings__
         for k, v in self.__mappings__.iteritems():
             if v.insertable:
                 if not hasattr(self, k):
                     setattr(self, k, v.default)
                 params[v.name] = getattr(self, k)
-                print params
         mydb.insert('%s' % self.__table__, **params)
         return self
 

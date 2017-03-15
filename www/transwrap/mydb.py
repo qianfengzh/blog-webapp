@@ -1,10 +1,11 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-
+import time
 import logging
 import threading
 import functools
+import uuid
 
 import mysql.connector
 
@@ -185,6 +186,17 @@ def insert(table, **kwargs):
                                                  ','.join(['?' for i in range(len(cols))]))
     print sql
     return _update(sql, *args)
+
+
+def next_id(t=None):
+    """
+    Return next id as 50-char string.
+    :param t: unix timestamp, default to None and using time.time().
+    :return:
+    """
+    if t is None:
+        t = time.time()
+    return '%05d%s000' % (int(t * 1000), uuid.uuid4().hex)
 
 
 if __name__ == '__main__':
